@@ -100,6 +100,51 @@
     </div>
   </div>
 
+  <!-- Modal: novo horário (ID: modalHorario) -->
+  <div class="modal fade" id="modalHorario" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content" id="formHorario">
+        <div class="modal-header">
+          <h5 class="modal-title">Adicionar Horário</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="horarioMedId">
+          <div class="mb-3">
+            <label class="form-label">Hora (HH:MM)</label>
+            <input type="time" class="form-control" id="horaInput" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Dias da Semana</label>
+            <select class="form-select" id="diasInput" multiple>
+              <option value="0" selected>Domingo</option>
+              <option value="1" selected>Segunda</option>
+              <option value="2" selected>Terça</option>
+              <option value="3" selected>Quarta</option>
+              <option value="4" selected>Quinta</option>
+              <option value="5" selected>Sexta</option>
+              <option value="6" selected>Sábado</option>
+            </select>
+            <small class="text-muted">Segure Ctrl para selecionar vários.</small>
+          </div>
+          <div class="row">
+            <div class="col-6 mb-3">
+              <label class="form-label">Início (Opcional)</label>
+              <input type="date" class="form-control" id="dataInicioInput">
+            </div>
+            <div class="col-6 mb-3">
+              <label class="form-label">Fim (Opcional)</label>
+              <input type="date" class="form-control" id="dataFimInput">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Salvar Horário</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/js/app.js"></script>
 </body>

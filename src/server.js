@@ -18,6 +18,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api', api);
 app.use('/twilio', twilioRoutes);
+app.use('/', twilioRoutes);
 
 app.use((err, req, res, next) => {
   if (err.type === 'entity.parse.failed') {

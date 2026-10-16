@@ -21,6 +21,9 @@ CREATE TABLE IF NOT EXISTS horarios (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   medicamento_id INTEGER NOT NULL REFERENCES medicamentos(id) ON DELETE CASCADE,
   hora TEXT NOT NULL CHECK (hora GLOB '[0-2][0-9]:[0-5][0-9]' AND hora < '24:00'),
+  dias_semana TEXT DEFAULT '0,1,2,3,4,5,6',
+  data_inicio TEXT,
+  data_fim TEXT,
   ativo INTEGER NOT NULL DEFAULT 1,
   UNIQUE (medicamento_id, hora)
 );

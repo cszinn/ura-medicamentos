@@ -4,31 +4,37 @@ const config = require('../config');
 const { montarMensagem } = require('./mensagem');
 const { discar } = require('./telephony');
 
-function agora(date = new Date()) {
-  const partes = new Intl.DateTimeFormat('en-CA', {
-    timeZone: config.timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(date);
-  const p = Object.fromEntries(partes.map((x) => [x.type, x.value]));
-  return { data: `${p.year}-${p.month}-${p.day}`, hora: `${p.hour}:${p.minute}` };
-}
-
 const buscarDevidos = db.prepare(`
-  SELECT h.id AS horario_id, h.hora,
+  SELECT h.id AS horario_id, h.hora, h.dias_semana,
          m.nome AS medicamento, m.descricao,
          p.id AS paciente_id, p.nome AS paciente, p.telefone,
          p.cuidador_nome, p.cuidador_telefone
   FROM horarios h
   JOIN medicamentos m ON m.id = h.medicamento_id AND m.ativo = 1
   JOIN pacientes p ON p.id = m.paciente_id AND p.ativo = 1
-  WHERE h.ativo = 1 AND h.hora = ?
+  WHERE h.ativo = 1 
+    AND h.hora = ?
+    AND (h.dias_semana IS NULL OR h.dias_semana LIKE '%' || ? || '%')
+    AND (h.data_inicio IS NULL OR h.data_inicio = '' OR h.data_inicio <= ?)
+    AND (h.data_fim IS NULL OR h.data_fim = '' OR h.data_fim >= ?)
   ORDER BY p.id, m.nome
 `);
+
+function agora(date = new Date()) {
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: config.timezone,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(date);
+  const p = Object.fromEntries(partes.map((x) => [x.type, x.value]));
+  const dataHoje = `${p.year}-${p.month}-${p.day}`;
+  
+  // Obter o dia da semana considerando o fuso horário (0 = Domingo, 6 = Sábado)
+  const tzDate = new Date(date.toLocaleString('en-US', { timeZone: config.timezone }));
+  const diaSemana = tzDate.getDay().toString();
+
+  return { data: dataHoje, hora: `${p.hour}:${p.minute}`, diaSemana };
+}
 
 const reservar = db.prepare(
   'INSERT OR IGNORE INTO chamadas (horario_id, data, tentativa) VALUES (?, ?, 1)'
@@ -60,8 +66,8 @@ async function ligar(itens, hora) {
 }
 
 // Varre o banco para o minuto informado (padrão: agora). Retorna quantas chamadas foram reservadas.
-async function varrer({ data, hora } = agora()) {
-  const devidos = buscarDevidos.all(hora);
+async function varrer({ data, hora, diaSemana } = agora()) {
+  const devidos = buscarDevidos.all(hora, diaSemana, data, data);
 
   const novos = [];
   db.transaction(() => {

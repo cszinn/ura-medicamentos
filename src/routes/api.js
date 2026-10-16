@@ -162,11 +162,19 @@ router.post('/medicamentos/:id/horarios', (req, res) => {
   if (!db.prepare('SELECT 1 FROM medicamentos WHERE id = ?').get(req.id)) {
     return erro(res, 404, 'Medicamento não encontrado.');
   }
-  const hora = limpar((req.body || {}).hora);
-  if (!horaValida(hora)) return erro(res, 400, 'Horário inválido. Use o formato HH:MM, ex.: 08:00.');
+  const body = req.body || {};
+  const hora = limpar(body.hora);
+  const dias = limpar(body.dias_semana) || '0,1,2,3,4,5,6';
+  const inicio = limpar(body.data_inicio) || null;
+  const fim = limpar(body.data_fim) || null;
+
+  if (!horaValida(hora)) return erro(res, 400, 'Horário inválido.');
 
   try {
-    const info = db.prepare('INSERT INTO horarios (medicamento_id, hora) VALUES (?, ?)').run(req.id, hora);
+    const info = db.prepare(`
+      INSERT INTO horarios (medicamento_id, hora, dias_semana, data_inicio, data_fim) 
+      VALUES (?, ?, ?, ?, ?)
+    `).run(req.id, hora, dias, inicio, fim);
     res.status(201).json(db.prepare('SELECT * FROM horarios WHERE id = ?').get(info.lastInsertRowid));
   } catch (e) {
     if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') {
@@ -177,6 +185,20 @@ router.post('/medicamentos/:id/horarios', (req, res) => {
 });
 
 router.delete('/horarios/:id', remover('horarios', 'Horário'));
+
+// Nova Rota: Histórico de chamadas do paciente
+router.get('/pacientes/:id/chamadas', (req, res) => {
+  const chamadas = db.prepare(`
+    SELECT c.data, c.tentativa, c.status, c.criado_em, h.hora, m.nome as medicamento
+    FROM chamadas c
+    JOIN horarios h ON c.horario_id = h.id
+    JOIN medicamentos m ON h.medicamento_id = m.id
+    WHERE m.paciente_id = ?
+    ORDER BY c.criado_em DESC
+    LIMIT 20
+  `).all(req.params.id);
+  res.json(chamadas);
+});
 
 router.use((req, res) => erro(res, 404, 'Rota não encontrada.'));
 

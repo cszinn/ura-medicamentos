@@ -100,10 +100,9 @@ function renderDetalhe(p) {
                 .join('') || '<span class="text-muted small">Sem horários</span>'
             }
           </div>
-          <form class="d-flex gap-2" data-form="horario" data-id="${m.id}">
-            <input type="time" name="hora" class="form-control form-control-sm w-auto" required>
-            <button class="btn btn-sm btn-outline-primary">Adicionar horário</button>
-          </form>
+          <div class="d-flex gap-2 align-items-center">
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="abrirModalHorario(${m.id})">+ Adicionar Horário</button>
+          </div>
         </div>
       </div>`
       )
@@ -134,6 +133,33 @@ function renderDetalhe(p) {
       <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalMedicamento">+ Medicamento</button>
     </div>
     ${meds}`;
+
+  const paciente = p;
+  api(`/pacientes/${paciente.id}/chamadas`).then(chamadas => {
+    const tbody = chamadas.map(c => `
+      <tr>
+        <td>${esc(c.criado_em)}</td>
+        <td>${esc(c.medicamento)}</td>
+        <td>${esc(c.hora)}</td>
+        <td><span class="badge bg-${c.status === 'confirmada' ? 'success' : (c.status === 'discando' ? 'warning' : 'danger')}">${esc(c.status)}</span></td>
+      </tr>
+    `).join('');
+    
+    const painelStatus = `
+      <div class="card mt-4 border-0 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Status Recentes das Ligações</h5>
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead><tr><th>Data/Hora</th><th>Remédio</th><th>Agendado</th><th>Status</th></tr></thead>
+              <tbody>${tbody || '<tr><td colspan="4">Nenhuma chamada registrada.</td></tr>'}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
+    $('#detalhe').insertAdjacentHTML('beforeend', painelStatus);
+  });
 }
 
 async function atualizar() {
@@ -238,5 +264,32 @@ document.addEventListener('show.bs.modal', (ev) => {
   const erroEl = ev.target.querySelector('.erro-form');
   if (erroEl) erroEl.classList.add('d-none');
 });
+
+// Evento do formulário de Horários Específicos
+$('#formHorario').addEventListener('submit', seguro(async (e) => {
+  e.preventDefault();
+  const medId = $('#horarioMedId').value;
+  const diasSelecionados = Array.from($('#diasInput').selectedOptions).map(o => o.value).join(',');
+  
+  await api(`/medicamentos/${medId}/horarios`, {
+    method: 'POST',
+    body: {
+      hora: $('#horaInput').value,
+      dias_semana: diasSelecionados || '0,1,2,3,4,5,6',
+      data_inicio: $('#dataInicioInput').value,
+      data_fim: $('#dataFimInput').value
+    }
+  });
+  fecharModal('modalHorario');
+  avisar('Horário adicionado.');
+  atualizar();
+}));
+
+// Função para popular o id oculto e abrir o modal de horário:
+window.abrirModalHorario = (medId) => {
+  $('#horarioMedId').value = medId;
+  $('#formHorario').reset();
+  new bootstrap.Modal($('#modalHorario')).show();
+};
 
 seguro(atualizar)();

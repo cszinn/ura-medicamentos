@@ -2,11 +2,12 @@ const config = require('../config');
 const { getClient } = require('./twilioClient');
 
 // Envia o alerta ao cuidador por SMS (padrão) ou WhatsApp (ALERTA_CANAL=whatsapp).
-async function enviarAlerta({ para, texto }) {
-  const whats = config.alerta.canal === 'whatsapp';
+async function enviarAlerta({ para, texto, canal }) {
+  const tipoCanal = canal || config.alerta.canal;
+  const whats = tipoCanal === 'whatsapp';
 
   if (config.dryRun) {
-    console.log(`  [SIMULADO] alerta (${config.alerta.canal}) para ${para}: "${texto}"`);
+    console.log(`  [SIMULADO] alerta (${tipoCanal}) para ${para}: "${texto}"`);
     return { sid: `DRY-MSG-${Date.now()}` };
   }
 
